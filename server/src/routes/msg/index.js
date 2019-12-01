@@ -9,11 +9,11 @@ msg.get('/list/:to', getList);
 // 메시지 전송
 async function send(req, res) {
   try {
-    const { from, to, content } = req.body;
+    const { from, to, content, sign } = req.body;
     //발신자 기준으로 유저 이름 획득
     const { name: sender_name } = await User.findOne({ hash: from });
     // 메시지 정보를 데이터베이스에 저장
-    const msg = new Msg({ from, to, content, sender_name });
+    const msg = new Msg({ from, to, content, sign, sender_name });
     const data = await msg.save();
     // 저장된 데이터를 요청자에게 반환
     res.status(200).send(data);
@@ -29,14 +29,14 @@ async function getList(req, res) {
   const { to } = req.params;
 
   try {
-    // cert 테이블과 msg.from = user_hash 로 조인을 한 결과 반환
+    // pr_keyring 테이블과 msg.from = user_hash 로 조인을 한 결과 반환
     const data = await Msg.aggregate([
       {
         $lookup: {
-          from: 'cert',
+          from: 'pr_keyring',
           localField: 'from',
           foreignField: 'user_hash',
-          as: 'cert', // join 시 컬럼명
+          as: 'pr_keyring', // join 시 컬럼명
         },
       },
       {

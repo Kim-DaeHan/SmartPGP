@@ -2,7 +2,7 @@ import express from "express";
 import { Cert, User } from '../../db/models';
 import NodeRSA from 'node-rsa';
 
-const cert = express.Router();
+const pr_keyring = express.Router();
 
 // 프론트(api)와 연결되는 엔드포인트
 cert.post('/append', append);
@@ -16,9 +16,9 @@ cert.get('/issigned/:cert_id', isSigned);
 // 인증서 추가(생성)
 async function append(req, res) {
   try {
-    const { cert_id, user_hash } = req.body;
-    const cert = new Cert({ cert_id, user_hash });
-    const data = await cert.save();
+    const { key_id, user_hash } = req.body;
+    const pr_keyring = new Pr_keyring({ key_id, user_hash });
+    const data = await pr_keyring.save();
 
     res.status(200).send(data);
   } catch (e) {
@@ -132,4 +132,4 @@ async function isSigned(req, res) {
   }
 }
 
-export default cert;
+export default pr_keyring;
