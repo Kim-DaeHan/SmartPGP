@@ -33,9 +33,16 @@ class PGPContract {
   }
 
   // 공개키 키링 정보 저장하는 함수
-  async keyRingAppend(timestamp, publicKey, ownerTrust, hash, sign, signTrust) {
-    const res = await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash, sign, signTrust).call({ from: this.currentAcc });
-    await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash, sign, signTrust).send({ from: this.currentAcc });
+  async keyRingAppend(timestamp, publicKey, ownerTrust, hash) {
+    const res = await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash).call({ from: this.currentAcc });
+    await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash).send({ from: this.currentAcc });
+    return res;
+  }
+
+  // 메시지 정보 저장하는 함수
+  async MsgAppend(content, sign, hash) {
+    const res = await this.contract.methods.MsgAppend(content, sign, hash).call({ from: this.currentAcc });
+    await this.contract.methods.MsgAppend(content, sign, hash).send({ from: this.currentAcc });
     return res;
   }
 
@@ -51,6 +58,11 @@ class PGPContract {
     return res;
   }
 
+  // 메시지 정보 얻는 함수
+  async getMsgInfo(msgId) {
+    const res = await this.contract.methods.messages(msgId).call();
+    return res;
+  }
 }
 
 export default PGPContract;

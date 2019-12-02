@@ -8,9 +8,11 @@ contract PGP {
 
     mapping (uint => User) public users;
     mapping (uint => PuKeyRing) public keyring;
+    mapping (uint => Message) public messages;
 
     uint nUser = 0;
     uint nKeyRing = 0;
+    uint nMessage = 0;
 
     // 사용자
     struct User {
@@ -27,8 +29,13 @@ contract PGP {
         string publicKey;
         uint ownerTrust;
         string hash;    //userId
+    }
+
+    // 메시지
+    struct Message {
+        string content;
         string sign;
-        uint signTrust;
+        string hash;
     }
 
     constructor() public {
@@ -40,8 +47,13 @@ contract PGP {
         users[userId] = User(name, email, publicKey, hash);
     }
 
-    function keyRingAppend(uint timestamp, string memory publicKey, uint ownerTrust, string memory hash, string memory sign, uint signTrust) public returns (uint keyId) {
+    function keyRingAppend(uint timestamp, string memory publicKey, uint ownerTrust, string memory hash) public returns (uint keyId) {
         keyId = nKeyRing++;
-        keyring[keyId] = PuKeyRing(timestamp, publicKey, ownerTrust, hash, sign, signTrust);
+        keyring[keyId] = PuKeyRing(timestamp, publicKey, ownerTrust, hash);
+    }
+
+    function MsgAppend(string memory content, string memory sign, string memory hash) public returns (uint msgId) {
+        msgId = nMessage++;
+        messages[msgId] = Message(content, sign, hash);
     }
 }

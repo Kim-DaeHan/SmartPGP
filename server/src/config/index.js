@@ -30,7 +30,7 @@ const config = {
 // 데이터베이스 호스트 url 정보 리턴, dbInfo : config 설정 Object
 export const host = (dbInfo) => {
   const { username, password, databaseName } = dbInfo;
-  const hostUrl = `mongodb+srv://${username}:${password}@SmartPGP-1sh9v.mongodb.net/${databaseName}?retryWrites=true&w=majority`;
+  const hostUrl = `mongodb+srv://${username}:${password}@ethpki-1sh9v.mongodb.net/${databaseName}?retryWrites=true&w=majority`;
   return hostUrl;
 }
 

@@ -1,5 +1,7 @@
 import express from "express";
 import { Msg, User } from '../../db/models';
+import NodeRSA from 'node-rsa';
+import { sha512 } from 'js-sha512';
 
 const msg = express.Router();
 
@@ -9,9 +11,15 @@ msg.get('/list/:to', getList);
 // 메시지 전송
 async function send(req, res) {
   try {
-    const { from, to, content, sign } = req.body;
-    //발신자 기준으로 유저 이름 획득
-    const { name: sender_name } = await User.findOne({ hash: from });
+    const { from, to, content } = req.body;
+    const { userInfo } = await User.findOne({ hash: from });
+    // 발신자 기준으로 유저 이름, 유저 개인키 획득
+    const { sender_name, privatekey } = userInfo;
+    // 메시지 내용 해시화 
+    const msgHash = sha512(content);
+    // 개인키로 메시지 서명
+    const key = new NodeRSA(privatekey);
+    const sign = key.sign(msgHash, 'base64');
     // 메시지 정보를 데이터베이스에 저장
     const msg = new Msg({ from, to, content, sign, sender_name });
     const data = await msg.save();
