@@ -5,10 +5,9 @@ const User = new Schema({
     type: String,
     unique: true,
   },
+  userId: Number,
   name: String,
   email: String,
-  publickey: String,
-  privatekey: String,
   reg_date: {
     type: Date,
     default: Date.now,

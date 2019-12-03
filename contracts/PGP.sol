@@ -17,8 +17,7 @@ contract PGP {
     // 사용자
     struct User {
         string name;
-        string email;
-        string publicKey;        
+        string email;     
         string hash;
     }
 
@@ -42,9 +41,9 @@ contract PGP {
         owner = msg.sender;
     }
 
-    function userAppend(string memory name, string memory email, string memory publicKey, string memory hash) public returns (uint userId) {
+    function userAppend(string memory name, string memory email, string memory hash) public returns (uint userId) {
         userId = nUser++;
-        users[userId] = User(name, email, publicKey, hash);
+        users[userId] = User(name, email, hash);
     }
 
     function keyRingAppend(uint timestamp, string memory publicKey, uint ownerTrust, string memory hash) public returns (uint keyId) {

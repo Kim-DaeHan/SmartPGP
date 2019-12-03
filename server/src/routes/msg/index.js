@@ -12,9 +12,9 @@ msg.get('/list/:to', getList);
 async function send(req, res) {
   try {
     const { from, to, content } = req.body;
-    const { userInfo } = await User.findOne({ hash: from });
+    const userInfo = await User.findOne({ hash: from });
     // 발신자 기준으로 유저 이름, 유저 개인키 획득
-    const { sender_name, privatekey } = userInfo;
+    const { name: sender_name, privatekey } = userInfo;
     // 메시지 내용 해시화 
     const msgHash = sha512(content);
     // 개인키로 메시지 서명

@@ -1,10 +1,6 @@
 import mongoose, { Schema } from 'mongoose';
 
 const Pr_keyring = new Schema({
-  key_id: {
-    type: Number,
-    unique: true,
-  },
   publickey: {
     type: String,
   },

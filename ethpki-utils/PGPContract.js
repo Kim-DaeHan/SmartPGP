@@ -26,9 +26,9 @@ class PGPContract {
   }
 
   // 유저 정보 저장하는 함수
-  async userAppend(name, email, publicKey, hash) {
-    const res = await this.contract.methods.userAppend(name, email, publicKey, hash).call({ from: this.currentAcc });
-    await this.contract.methods.userAppend(name, email, publicKey, hash).send({ from: this.currentAcc });
+  async userAppend(name, email, hash) {
+    const res = await this.contract.methods.userAppend(name, email, hash).call({ from: this.currentAcc });
+    await this.contract.methods.userAppend(name, email, hash).send({ from: this.currentAcc });
     return res;
   }
 

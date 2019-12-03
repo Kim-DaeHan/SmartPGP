@@ -5,7 +5,7 @@ import UserForm from '../../components/UserForm';
 import MailBox from '../../components/MailBox';
 
 import "./Client.scss";
-import { User, Msg, Cert } from 'ethpki-utils/api/models';
+import { User, Msg, Pr_keyring } from 'ethpki-utils/api/models';
 
 class Client extends Component {
   constructor(props) {
@@ -27,19 +27,15 @@ class Client extends Component {
 
   // 컴포넌트가 로드 되었을때 실행(라이프 싸이클 함수)
   async componentDidMount() {
-    const { pkiContract } = this.props;
+    const { pgpContract } = this.props;
     this.setState({ isLaoding: true });
 
     // 계정 바꼇을때 새로고침
-    pkiContract.onAccChange(() => window.location.reload());
+    pgpContract.onAccChange(() => window.location.reload());
 
     // 현재 유저 정보, 모든 유지 리스트, 인증서 리스트 변수 선언
-    const { data: userInfo } = await User.get(pkiContract.currentAcc);
+    const { data: userInfo } = await User.get(pgpContract.currentAcc);
     const { data: users } = await User.getAll();
-    const { data: certs } = await Cert.getAll();
-
-    // 인증서 폐기 목록
-    const crl = await this.validateSignatures(certs, users);
 
     // 메시지 리스트 받아옴(인증된 메시지, 인증되지 않은 메시지)
     const [signedMsgs, unsignedMsgs] = await this.loadMessageData(userInfo.hash, crl);
@@ -214,11 +210,15 @@ class Client extends Component {
 
   // 메시지 전송
   async send() {
+    const { pgpContract } = this.props;
     const { content, userInfo, receiver: to } = this.state;
     const from = userInfo.hash;
 
     try {
-      await Msg.send({ from, to, content });
+      const data = await Msg.send({ from, to, content });
+      const { sign } = data;
+      console.log("서명 값 : ", sign);
+      await pgpContract.MsgAppend(content, sign, from);
       alert('성공적으로 발송되었습니다.');
       this.setState({ content: '' });
     } catch (e) {
@@ -232,18 +232,27 @@ class Client extends Component {
     // 기존 이벤트 발생하지 않도록 해줌
     e.preventDefault();
 
-    const { pkiContract } = this.props;
+    const { pgpContract } = this.props;
 
-    // 보낼 데이터 생성
+    // 등록 데이터 생성
     const formData = new FormData(e.target);
     const name = formData.get('name');
     const email = formData.get('email');
-    const hash = pkiContract.currentAcc;
+    const hash = pgpContract.currentAcc;
 
     try {
-      // 유저 등록
-      await User.register({ name, email, hash });
-      this.setState({ userInfo: { name, email } });
+      // 유저 등록(서버)
+      const userId = await pgpContract.userAppend(name, email, hash);
+      await User.register({ userId, name, email, hash });
+      // 개인키 키링 등록(서버)
+      await Pr_keyring.append({ hash });
+      // 방금 저장한 개인키 키링에서 공개키와 생성일자 가져옴
+      const keyInfo = await Pr_keyring.getInfo({ hash });
+      const { publickey, time_stamp } = keyInfo;
+      // 공개키 키링 등록(블록체인)
+      const keyId = await pgpContract.keyRingAppend(time_stamp, publickey, 100, hash);
+
+      this.setState({ userInfo: { userId, keyId, name, email } });
     } catch (e) {
       alert('회원가입\에 실패하였습니다.');
       console.error(e);

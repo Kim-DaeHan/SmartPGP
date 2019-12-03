@@ -1,5 +1,5 @@
 import getWeb3 from './getWeb3';
-import PKIContract from './contracts/PKI.json';
+import PGPContract from './contracts/PGP.json';
 
 const loadWeb3 = async () => {
   try {
@@ -11,9 +11,9 @@ const loadWeb3 = async () => {
 
     // Get the contract instance.
     const networkId = await web3.eth.net.getId();
-    const deployedNetwork = PKIContract.networks[networkId];
+    const deployedNetwork = PGPContract.networks[networkId];
     const contract = new web3.eth.Contract(
-      PKIContract.abi,
+      PGPContract.abi,
       deployedNetwork && deployedNetwork.address,
     );
 

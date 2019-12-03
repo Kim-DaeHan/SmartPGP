@@ -14,15 +14,10 @@ user.get('/info/:hash', getInfo);
  */
 async function register(req, res) {
   try {
-    const { name, email, hash } = req.body;
-
-    // 공개키/개인키 생성
-    const key = new NodeRSA({ b: 512 });
-    const publickey = key.exportKey('pkcs8-public');
-    const privatekey = key.exportKey('pkcs8-private');
+    const { userId, name, email, hash } = req.body;
 
     // 유저 데이터 등록
-    const user = new User({ name, email, hash, publickey, privatekey });
+    const user = new User({ userId, name, email, hash });
     const data = await user.save();
     
     res.status(200).send(data);
@@ -43,7 +38,7 @@ async function update(req, res) {
     });
 
     // 업데이트 후 privatekey를 제외한 유저정보를 select 해와서 요청자에게 전송
-    const data = await User.findOne({ hash }).select('-privatekey');
+    const data = await User.findOne({ hash });
     res.status(200).send(data);
   } catch (e) {
     console.error(e);
@@ -54,7 +49,7 @@ async function update(req, res) {
 // 유저 리스트
 async function getList(req, res) {
   try {
-    const data = await User.find().select('-privatekey');
+    const data = await User.find();
     res.status(200).send(data);
   } catch (e) {
     console.error(e);
@@ -67,7 +62,7 @@ async function getInfo(req, res) {
   try {
     const { hash } = req.params;
 
-    const data = await User.findOne({ hash }).select('-privatekey');
+    const data = await User.findOne({ hash });
     res.status(200).send(data);
   } catch (e) {
     console.error(e);
