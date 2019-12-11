@@ -6,13 +6,11 @@ contract PGP {
     
     address public owner;
 
-    mapping (uint => User) public users;
-    mapping (uint => PuKeyRing) public keyring;
-    mapping (uint => Message) public messages;
+    mapping (string => User) public users;
+    mapping (string => PuKeyRing) public keyring;
+    mapping (string => Message) public messages;
 
-    uint nUser = 0;
     uint nKeyRing = 0;
-    uint nMessage = 0;
 
     // 사용자
     struct User {
@@ -23,8 +21,8 @@ contract PGP {
 
     // 공개키 키링
     struct PuKeyRing {
-        uint timestamp;
-        //string keyId; 매핑 아이디로 사용
+        string time_stamp;
+        uint keyId;
         string publicKey;
         uint ownerTrust;
         string hash;    //userId
@@ -32,6 +30,7 @@ contract PGP {
 
     // 메시지
     struct Message {
+        string _id;
         string content;
         string sign;
         string hash;
@@ -41,18 +40,16 @@ contract PGP {
         owner = msg.sender;
     }
 
-    function userAppend(string memory name, string memory email, string memory hash) public returns (uint userId) {
-        userId = nUser++;
-        users[userId] = User(name, email, hash);
+    function userAppend(string memory name, string memory email, string memory hash) public {
+        users[hash] = User(name, email, hash);
     }
 
-    function keyRingAppend(uint timestamp, string memory publicKey, uint ownerTrust, string memory hash) public returns (uint keyId) {
-        keyId = nKeyRing++;
-        keyring[keyId] = PuKeyRing(timestamp, publicKey, ownerTrust, hash);
+    function keyRingAppend(string memory time_stamp, string memory publicKey, uint ownerTrust, string memory hash) public {
+        nKeyRing++;
+        keyring[hash] = PuKeyRing(time_stamp, nKeyRing, publicKey, ownerTrust, hash);
     }
 
-    function MsgAppend(string memory content, string memory sign, string memory hash) public returns (uint msgId) {
-        msgId = nMessage++;
-        messages[msgId] = Message(content, sign, hash);
+    function MsgAppend(string memory _id, string memory content, string memory sign, string memory hash) public {
+        messages[_id] = Message(_id, content, sign, hash);
     }
 }

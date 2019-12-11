@@ -14,10 +14,10 @@ user.get('/info/:hash', getInfo);
  */
 async function register(req, res) {
   try {
-    const { userId, name, email, hash } = req.body;
+    const { name, email, hash } = req.body;
 
     // 유저 데이터 등록
-    const user = new User({ userId, name, email, hash });
+    const user = new User({ name, email, hash });
     const data = await user.save();
     
     res.status(200).send(data);

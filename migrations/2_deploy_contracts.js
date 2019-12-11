@@ -1,5 +1,5 @@
-const PKI = artifacts.require("PKI");
+const PGP = artifacts.require("PGP");
 
 module.exports = function (deployer) {
-  deployer.deploy(PKI);
+  deployer.deploy(PGP);
 };

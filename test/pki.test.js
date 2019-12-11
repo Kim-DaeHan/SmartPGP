@@ -1,10 +1,10 @@
-const PKI = artifacts.require("PKI");
+const PGP = artifacts.require("PGP");
 
-contract("PKI", accounts => {
+contract("PGP", accounts => {
   const [account1] = accounts;
 
   it("Set/Get User", async () => {
-    const instance = await PKI.deployed();
+    const instance = await PGP.deployed();
     await instance.setUser.call(account1, '홍길동', 'test@test.com');
     const userInfo = await instance.getUser.call(account1);
 

@@ -6,7 +6,7 @@ const pr_keyring = express.Router();
 
 // 프론트(api)와 연결되는 엔드포인트
 pr_keyring.post('/append', append);
-pr_keyring.get('/info/:user_hash', getInfo);
+pr_keyring.get('/info/:_id', getInfo);
 pr_keyring.get('/list', getList);
 
 // 개인키 키링 생성
@@ -16,14 +16,13 @@ async function append(req, res) {
     const key = new NodeRSA({ b: 512 });
     const publickey = key.exportKey('pkcs8-public');
     const privatekey = key.exportKey('pkcs8-private');
-
     // 개인키 암호화
     const crypto = require("crypto");
     const cipher = crypto.createCipher('aes256', 'password');
-    const { user_hash } = req.body;
+    const { hash: user_hash } = req.body;
     cipher.update(privatekey, 'ascii', 'hex');
     const encrypted_prkey = cipher.final('hex');
-    
+    console.log("---", req.body);
     // 개인키 키링 정보 저장
     const pr_keyring = new Pr_keyring({ publickey, encrypted_prkey, user_hash });
     const data = await pr_keyring.save();
@@ -39,9 +38,15 @@ async function append(req, res) {
 // 개인키 아이디로 개인키 하나의 정보를 획득
 async function getInfo(req, res) {
   try {
-    const { user_hash } = req.params;
-    const data = await Pr_keyring.findOne({ user_hash });
-    res.status(200).send(data);
+    const { _id } = req.params;
+    //const data2 = await Pr_keyring.findById(user_hash);
+    //const data = await Pr_keyring.findById(user_hash).exec();
+    
+    
+    const { ObjectId } = require('mongoose').Types;
+    console.log(ObjectId.isValid(_id));
+    console.log("data : ",data);
+    //res.status(200).send(data);
   } catch (e) {
     console.error(e);
     res.status(500).send(e);

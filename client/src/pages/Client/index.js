@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import NodeRSA from 'node-rsa';
+import { sha512 } from 'js-sha512';
 
 import UserForm from '../../components/UserForm';
 import MailBox from '../../components/MailBox';
@@ -22,7 +23,7 @@ class Client extends Component {
     }
 
     this.handleSubmitUserForm = this.handleSubmitUserForm.bind(this);
-    this.showCertificateInfo = this.showCertificateInfo.bind(this);
+    this.showUserInfo = this.showUserInfo.bind(this);
   }
 
   // 컴포넌트가 로드 되었을때 실행(라이프 싸이클 함수)
@@ -36,16 +37,19 @@ class Client extends Component {
     // 현재 유저 정보, 모든 유지 리스트, 인증서 리스트 변수 선언
     const { data: userInfo } = await User.get(pgpContract.currentAcc);
     const { data: users } = await User.getAll();
+    const { data: keyring } = await Pr_keyring.getAll();
+    const { data: message } = await Msg.getAll();
+
+    const valid = await this.validateSignatures(message, keyring);
 
     // 메시지 리스트 받아옴(인증된 메시지, 인증되지 않은 메시지)
-    const [signedMsgs, unsignedMsgs] = await this.loadMessageData(userInfo.hash, crl);
+    const [signedMsgs, unsignedMsgs] = await this.loadMessageData(userInfo.hash, valid);
 
     this.setState({
       userInfo,
       users,
       signedMsgs,
       unsignedMsgs,
-      certs,
       isLaoding: false,
     });
   }
@@ -103,11 +107,11 @@ class Client extends Component {
           <MailBox
             title='Signed Messages'
             msgs={this.state.signedMsgs}
-            onClickName={this.showCertificateInfo} />
+            onClickName={this.showUserInfo} />
           <MailBox
             title='Unsigned Messages'
             msgs={this.state.unsignedMsgs}
-            onClickName={this.showCertificateInfo} />
+            onClickName={this.showUserInfo} />
         </div>
       </div>
     );
@@ -116,63 +120,53 @@ class Client extends Component {
   // async : 비동기를 동기(순서대로)처럼 처리하도록
   // await : 동기 처럼 작동하도록 이전 코드가 완료될떄까지 기다리게 하는 코드
   // 메시지함에서 유저 이름 클릭 했을 때 인증서 정보 보여주는 함수
-  async showCertificateInfo(msg) {
-    const { pkiContract } = this.props;
-    const { cert } = msg;
-
-    // 인증서가 존재 하지 않을 경우
-    if (!cert[0]) {
-      alert(`Certificate not found`);
-      return;
-    }
-
-    const { cert_id, sign_id } = cert[0];
+  async showUserInfo(msg) {
+    const { pgpContract } = this.props;
+    const { from: userHash } = msg;    
 
     // 인증서 정보, 서명 여부 변수
-    const certInfo = await pkiContract.getCertInfo(cert_id);
-    const isSignValid = await pkiContract.isSignatureValid(sign_id);
-    const { data, hash } = certInfo;
+    const keyInfo = await pgpContract.getKeyRingInfo(userHash);
+    const userInfo = await pgpContract.getuserInfo(userHash);
+    const { hash, publicKey, ownerTrust } = keyInfo;
+    const { name, email } = userInfo;
 
-    console.log('isSignValid', isSignValid);
+//     // 인증서는 존재 하는데 서명이 없을 경우
+//     if ((sign_id !== 0 && !sign_id) || !isSignValid) {
+//       alert(`
+// [data]: ${data},
+// [hash]: ${hash},
+// [sign]: <Unsigned Certificate>
+//       `);
+//       return;
+//     }
 
-    // 인증서는 존재 하는데 서명이 없을 경우
-    if ((sign_id !== 0 && !sign_id) || !isSignValid) {
-      alert(`
-[data]: ${data},
-[hash]: ${hash},
-[sign]: <Unsigned Certificate>
-      `);
-      return;
-    }
-
-    const signInfo = await pkiContract.getSignInfo(sign_id);
-    const { expiry, owner, sign } = signInfo;
+    // const signInfo = await pkiContract.getSignInfo(sign_id);
+    // const { expiry, owner, sign } = signInfo;
 
     // 그 외의 경우(인증서도 존재하고 서명도 된 경우)
     alert(`
-[data]: ${data},
+[name]: ${name},
 [hash]: ${hash},
-[expiry]: ${expiry},
-[owner]: ${owner},
-[sign]: ${sign}
+[email]: ${email},
+[publicKey]: ${publicKey},
+[ownerTrust]: ${ownerTrust}
     `);
   }
 
   // 메시지 리스트 로드 함수
-  async loadMessageData(userHash, crl) {
+  async loadMessageData(userHash, valid) {
     const { data: messages } = await Msg.getAll(userHash);
-    return this.groupMessages(messages, crl);
+    return this.groupMessages(messages, valid);
   }
 
   // 메시지 리스트를 인증된 메시지와 인증되지 않은 메시지 분류
-  groupMessages(messages, crl) {
+  groupMessages(messages, valid) {
     const signed = [];
     const unsigned = [];
 
     // 각 메시지 인증 여부를 식별 해서 인증되었을 경우 signed 배열에 넣고 아닐 경우 unsigned 배열에 넣는다.
     messages.forEach((v) => {
-      const certInfo = v.cert[0];
-      if (certInfo && crl && !crl[certInfo.cert_id]) signed.push(v);
+      if (valid) signed.push(v);
       else unsigned.push(v);
     });
     //console.log("인증된 메시지 : ", signed);
@@ -182,30 +176,31 @@ class Client extends Component {
   }
 
   // 인증서 폐기 목록 리턴(서명 여부 식별)
-  async validateSignatures(certs, users) {
-    const { pkiContract } = this.props;
-    const crl = {};
+  async validateSignatures(message, keyring) {
+    const { pgpContract } = this.props;
+    const valid = {};
+    const msgId = 0;
 
     // certs 배열을 돌면서...(v 는 각각의 배열, 순서대로(0, 1, 2...))
-    for (const v of certs) {  // 현재 로그인 한 유저 정보 말고는 다른 유저의 정보를 얻을 수 없기 때문에
-      const { hash } = await pkiContract.getCertInfo(v.cert_id);
-      const { sign } = await pkiContract.getSignInfo(v.sign_id);
-      const isCertValid = await pkiContract.isSignatureValid(v.sign_id);
+    for (const v of message) {  // 현재 로그인 한 유저 정보 말고는 다른 유저의 정보를 얻을 수 없기 때문에
+      msgId++;
+      const msgHash = sha512(v.content);
+      const sign = v.sign;
 
       // 현재 인증서를 소유한 유저 정보 획득(인증서를 가지고 있는 유저 전부의 정보를 각각 획득)
-      const userInfo = users.find(user => user.hash === v.user_hash);
+      const keyInfo = keyring.find(keyring => keyring.user_hash === v.from);
       // 해당 유저의 publickey를 받아와 NodeRSA 객체 생성
-      const { publickey } = userInfo;
+      const { publickey } = keyInfo;
       const key = new NodeRSA(publickey);
 
       // 서명값 복호화 해서 인증서 hash 값과 일치하는지 비교
-      const isValid = key.verify(hash, sign, 'utf8', 'base64');
+      const isValid = key.verify(msgHash, sign, 'utf8', 'base64');
       // 인증서 폐기 목록 생성
-      crl[v.cert_id] = !(isValid && v.is_signed && isCertValid);
-      console.log(userInfo.name ," : \nhash : ", hash,"\npublickey : ", publickey ,"\nsign : ", sign, "\nisValid : ", isValid, "\nisCertValid : ", isCertValid);
+      valid[msgId] = isValid;
+      console.log(keyInfo.user_hash ,"\npublickey : ", publickey ,"\nsign : ", sign, "\nisValid : ", isValid);
     }
 
-    return crl;
+    return valid;
   }
 
   // 메시지 전송
@@ -216,9 +211,9 @@ class Client extends Component {
 
     try {
       const data = await Msg.send({ from, to, content });
-      const { sign } = data;
+      const { sign, _id } = data;
       console.log("서명 값 : ", sign);
-      await pgpContract.MsgAppend(content, sign, from);
+      await pgpContract.MsgAppend(_id, content, sign, from);
       alert('성공적으로 발송되었습니다.');
       this.setState({ content: '' });
     } catch (e) {
@@ -241,20 +236,21 @@ class Client extends Component {
     const hash = pgpContract.currentAcc;
 
     try {
-      // 유저 등록(서버)
-      const userId = await pgpContract.userAppend(name, email, hash);
-      await User.register({ userId, name, email, hash });
+      // 유저 등록(서버, 블록체인)
+      await pgpContract.userAppend(name, email, hash);
+      await User.register({ name, email, hash });
+      console.log("--1-- ");
       // 개인키 키링 등록(서버)
-      await Pr_keyring.append({ hash });
+      const { data } = await Pr_keyring.append({ hash });
+      console.log("--2--");
+      console.log(data.publickey, data.encrypted_prkey, data.time_stamp, data._id);
       // 방금 저장한 개인키 키링에서 공개키와 생성일자 가져옴
-      const keyInfo = await Pr_keyring.getInfo({ hash });
-      const { publickey, time_stamp } = keyInfo;
       // 공개키 키링 등록(블록체인)
-      const keyId = await pgpContract.keyRingAppend(time_stamp, publickey, 100, hash);
-
-      this.setState({ userInfo: { userId, keyId, name, email } });
+      await pgpContract.keyRingAppend(data.time_stamp, data.publickey, 100, hash);
+      console.log("--4--");
+      this.setState({ userInfo: { name, email } });
     } catch (e) {
-      alert('회원가입\에 실패하였습니다.');
+      alert('회원가입에 실패하였습니다.');
       console.error(e);
     }
 

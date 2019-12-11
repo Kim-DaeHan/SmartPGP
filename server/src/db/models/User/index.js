@@ -5,7 +5,6 @@ const User = new Schema({
     type: String,
     unique: true,
   },
-  userId: Number,
   name: String,
   email: String,
   reg_date: {

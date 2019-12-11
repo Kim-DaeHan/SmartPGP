@@ -33,28 +33,28 @@ class PGPContract {
   }
 
   // 공개키 키링 정보 저장하는 함수
-  async keyRingAppend(timestamp, publicKey, ownerTrust, hash) {
-    const res = await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash).call({ from: this.currentAcc });
-    await this.contract.methods.keyRingAppend(timestamp, publicKey, ownerTrust, hash).send({ from: this.currentAcc });
+  async keyRingAppend(time_stamp, publicKey, ownerTrust, hash) {
+    const res = await this.contract.methods.keyRingAppend(time_stamp, publicKey, ownerTrust, hash).call({ from: this.currentAcc });
+    await this.contract.methods.keyRingAppend(time_stamp, publicKey, ownerTrust, hash).send({ from: this.currentAcc });
     return res;
   }
 
   // 메시지 정보 저장하는 함수
-  async MsgAppend(content, sign, hash) {
-    const res = await this.contract.methods.MsgAppend(content, sign, hash).call({ from: this.currentAcc });
-    await this.contract.methods.MsgAppend(content, sign, hash).send({ from: this.currentAcc });
+  async MsgAppend(_id, content, sign, hash) {
+    const res = await this.contract.methods.MsgAppend(_id, content, sign, hash).call({ from: this.currentAcc });
+    await this.contract.methods.MsgAppend(_id, content, sign, hash).send({ from: this.currentAcc });
     return res;
   }
 
   // 유저 정보 얻는 함수
-  async getUserInfo(userId) {
-    const res = await this.contract.methods.users(userId).call();
+  async getUserInfo(userHash) {
+    const res = await this.contract.methods.users(userHash).call();
     return res;
   }
 
   // 공개키 키링 정보 얻는 함수
-  async getKeyRingInfo(keyId) {
-    const res = await this.contract.methods.keyring(keyId).call();
+  async getKeyRingInfo(userHash) {
+    const res = await this.contract.methods.keyring(userHash).call();
     return res;
   }
 
