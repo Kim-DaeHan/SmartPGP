@@ -1,5 +1,5 @@
 import express from "express";
-import { Msg, User } from '../../db/models';
+import { Msg, User, Pr_keyring } from '../../db/models';
 import NodeRSA from 'node-rsa';
 import { sha512 } from 'js-sha512';
 
@@ -11,17 +11,23 @@ msg.get('/list/:to', getList);
 // 메시지 전송
 async function send(req, res) {
   try {
+    const crypto = require("crypto");
+
     const { from, to, content } = req.body;
-    const userInfo = await User.findOne({ hash: from });
+    const keyInfo = await Pr_keyring.findOne({ user_hash: from });
     // 발신자 기준으로 유저 이름, 유저 개인키 획득
-    const { name: sender_name, privatekey } = userInfo;
+    const { user_hash: sender_hash, encrypted_prkey } = keyInfo;
+    const decipher = crypto.createDecipher('aes-256-cbc', 'password');
+    const privatekey = decipher.update(encrypted_prkey, 'binary', 'utf8') + decipher.final('utf8');
+     
+    console.log("개인키 복호화 : ", privatekey);
     // 메시지 내용 해시화 
     const msgHash = sha512(content);
     // 개인키로 메시지 서명
     const key = new NodeRSA(privatekey);
-    const sign = key.sign(msgHash, 'base64');
+    const sign = key.sign(msgHash, 'binary');
     // 메시지 정보를 데이터베이스에 저장
-    const msg = new Msg({ from, to, content, sign, sender_name });
+    const msg = new Msg({ from, to, content, sign, sender_hash });
     const data = await msg.save();
     // 저장된 데이터를 요청자에게 반환
     res.status(200).send(data);
@@ -37,14 +43,14 @@ async function getList(req, res) {
   const { to } = req.params;
 
   try {
-    // pr_keyring 테이블과 msg.from = user_hash 로 조인을 한 결과 반환
+    // user 테이블과 msg.from = hash 로 조인을 한 결과 반환
     const data = await Msg.aggregate([
       {
         $lookup: {
-          from: 'pr_keyring',
+          from: 'user',
           localField: 'from',
-          foreignField: 'user_hash',
-          as: 'pr_keyring', // join 시 컬럼명
+          foreignField: 'hash',
+          as: 'user', // join 시 컬럼명
         },
       },
       {

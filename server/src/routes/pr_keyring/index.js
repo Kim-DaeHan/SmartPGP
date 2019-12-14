@@ -1,5 +1,5 @@
 import express from "express";
-import { Pr_keyring, User } from '../../db/models';
+import { Pr_keyring } from '../../db/models';
 import NodeRSA from 'node-rsa';
 
 const pr_keyring = express.Router();
@@ -18,10 +18,11 @@ async function append(req, res) {
     const privatekey = key.exportKey('pkcs8-private');
     // 개인키 암호화
     const crypto = require("crypto");
-    const cipher = crypto.createCipher('aes256', 'password');
+    const cipher = crypto.createCipher('aes-256-cbc', 'password');
     const { hash: user_hash } = req.body;
-    cipher.update(privatekey, 'ascii', 'hex');
-    const encrypted_prkey = cipher.final('hex');
+    const encrypted_prkey = cipher.update(privatekey, 'utf8', 'binary') + cipher.final('binary');
+    
+    console.log("암호화 개인키 : ", encrypted_prkey);
     console.log("---", req.body);
     // 개인키 키링 정보 저장
     const pr_keyring = new Pr_keyring({ publickey, encrypted_prkey, user_hash });

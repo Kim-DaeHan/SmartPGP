@@ -44,7 +44,7 @@ class Client extends Component {
 
     // 메시지 리스트 받아옴(인증된 메시지, 인증되지 않은 메시지)
     const [signedMsgs, unsignedMsgs] = await this.loadMessageData(userInfo.hash, valid);
-
+    
     this.setState({
       userInfo,
       users,
@@ -169,8 +169,8 @@ class Client extends Component {
       if (valid) signed.push(v);
       else unsigned.push(v);
     });
-    //console.log("인증된 메시지 : ", signed);
-    //console.log("인증되지 않은 메시지 : ", unsigned);
+    console.log("인증된 메시지 : ", signed);
+    console.log("인증되지 않은 메시지 : ", unsigned);
     // 배열 리턴
     return [signed, unsigned];
   }
@@ -210,10 +210,9 @@ class Client extends Component {
     const from = userInfo.hash;
 
     try {
-      const data = await Msg.send({ from, to, content });
-      const { sign, _id } = data;
-      console.log("서명 값 : ", sign);
-      await pgpContract.MsgAppend(_id, content, sign, from);
+      const { data } = await Msg.send({ from, to, content });
+      console.log("서명 값 : ", data.sign);
+      await pgpContract.MsgAppend(data._id, content, data.sign, from);
       alert('성공적으로 발송되었습니다.');
       this.setState({ content: '' });
     } catch (e) {
@@ -239,16 +238,13 @@ class Client extends Component {
       // 유저 등록(서버, 블록체인)
       await pgpContract.userAppend(name, email, hash);
       await User.register({ name, email, hash });
-      console.log("--1-- ");
       // 개인키 키링 등록(서버)
       const { data } = await Pr_keyring.append({ hash });
-      console.log("--2--");
       console.log(data.publickey, data.encrypted_prkey, data.time_stamp, data._id);
       // 방금 저장한 개인키 키링에서 공개키와 생성일자 가져옴
       // 공개키 키링 등록(블록체인)
       await pgpContract.keyRingAppend(data.time_stamp, data.publickey, 100, hash);
-      console.log("--4--");
-      this.setState({ userInfo: { name, email } });
+      this.setState({ userInfo: { name, email, hash } });
     } catch (e) {
       alert('회원가입에 실패하였습니다.');
       console.error(e);
