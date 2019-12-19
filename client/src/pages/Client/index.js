@@ -24,6 +24,7 @@ class Client extends Component {
 
     this.handleSubmitUserForm = this.handleSubmitUserForm.bind(this);
     this.showUserInfo = this.showUserInfo.bind(this);
+    this.showMsgInfo = this.showMsgInfo.bind(this);
   }
 
   // 컴포넌트가 로드 되었을때 실행(라이프 싸이클 함수)
@@ -38,7 +39,7 @@ class Client extends Component {
     const { data: userInfo } = await User.get(pgpContract.currentAcc);
     const { data: users } = await User.getAll();
     const { data: keyring } = await Pr_keyring.getAll();
-    const { data: message } = await Msg.getAll();
+    const { data: message } = await Msg.getAll(userInfo.hash);
 
     const valid = await this.validateSignatures(message, keyring);
 
@@ -107,11 +108,13 @@ class Client extends Component {
           <MailBox
             title='Signed Messages'
             msgs={this.state.signedMsgs}
-            onClickName={this.showUserInfo} />
+            onClickName={this.showUserInfo}
+            onClickContent={this.showMsgInfo} />
           <MailBox
             title='Unsigned Messages'
             msgs={this.state.unsignedMsgs}
-            onClickName={this.showUserInfo} />
+            onClickName={this.showUserInfo}
+            onClickContent={this.showMsgInfo} />
         </div>
       </div>
     );
@@ -126,22 +129,9 @@ class Client extends Component {
 
     // 인증서 정보, 서명 여부 변수
     const keyInfo = await pgpContract.getKeyRingInfo(userHash);
-    const userInfo = await pgpContract.getuserInfo(userHash);
+    const userInfo = await pgpContract.getUserInfo(userHash);
     const { hash, publicKey, ownerTrust } = keyInfo;
     const { name, email } = userInfo;
-
-//     // 인증서는 존재 하는데 서명이 없을 경우
-//     if ((sign_id !== 0 && !sign_id) || !isSignValid) {
-//       alert(`
-// [data]: ${data},
-// [hash]: ${hash},
-// [sign]: <Unsigned Certificate>
-//       `);
-//       return;
-//     }
-
-    // const signInfo = await pkiContract.getSignInfo(sign_id);
-    // const { expiry, owner, sign } = signInfo;
 
     // 그 외의 경우(인증서도 존재하고 서명도 된 경우)
     alert(`
@@ -150,6 +140,21 @@ class Client extends Component {
 [email]: ${email},
 [publicKey]: ${publicKey},
 [ownerTrust]: ${ownerTrust}
+    `);
+  }
+
+  async showMsgInfo(msg) {
+    const { pgpContract } = this.props;
+    const { _id: msgId } = msg;    
+
+    // 인증서 정보, 서명 여부 변수
+    const msgInfo = await pgpContract.getMsgInfo(msgId);
+    const { content, sign } = msgInfo;
+
+    // 그 외의 경우(인증서도 존재하고 서명도 된 경우)
+    alert(`
+[content]: ${content},
+[sign]: ${sign}
     `);
   }
 
@@ -163,27 +168,30 @@ class Client extends Component {
   groupMessages(messages, valid) {
     const signed = [];
     const unsigned = [];
-
+    var i=0;
     // 각 메시지 인증 여부를 식별 해서 인증되었을 경우 signed 배열에 넣고 아닐 경우 unsigned 배열에 넣는다.
     messages.forEach((v) => {
-      if (valid) signed.push(v);
-      else unsigned.push(v);
+      if (valid) {
+        signed.push(v);
+      } else {
+        unsigned.push(v);
+      }
+      i++;
     });
-    console.log("인증된 메시지 : ", signed);
-    console.log("인증되지 않은 메시지 : ", unsigned);
+    //console.log("인증된 메시지 : ", signed);
+    //console.log("인증되지 않은 메시지 : ", unsigned);
     // 배열 리턴
     return [signed, unsigned];
   }
 
   // 인증서 폐기 목록 리턴(서명 여부 식별)
   async validateSignatures(message, keyring) {
-    const { pgpContract } = this.props;
+    //const { pgpContract } = this.props;
     const valid = {};
-    const msgId = 0;
+    var msgId = 0;
 
     // certs 배열을 돌면서...(v 는 각각의 배열, 순서대로(0, 1, 2...))
     for (const v of message) {  // 현재 로그인 한 유저 정보 말고는 다른 유저의 정보를 얻을 수 없기 때문에
-      msgId++;
       const msgHash = sha512(v.content);
       const sign = v.sign;
 
@@ -194,10 +202,11 @@ class Client extends Component {
       const key = new NodeRSA(publickey);
 
       // 서명값 복호화 해서 인증서 hash 값과 일치하는지 비교
-      const isValid = key.verify(msgHash, sign, 'utf8', 'base64');
+      const isValid = key.verify(msgHash, sign, 'utf8', 'binary');
       // 인증서 폐기 목록 생성
       valid[msgId] = isValid;
       console.log(keyInfo.user_hash ,"\npublickey : ", publickey ,"\nsign : ", sign, "\nisValid : ", isValid);
+      msgId++;
     }
 
     return valid;
