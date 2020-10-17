@@ -3,7 +3,6 @@ pragma solidity >=0.4.0;
 // TODO: 암호화/복호화
 
 contract PGP {
-    
     address public owner;
 
     mapping (string => User) public users;
@@ -15,7 +14,7 @@ contract PGP {
     // 사용자
     struct User {
         string name;
-        string email;     
+        string email;
         string hash;
     }
 
@@ -51,5 +50,15 @@ contract PGP {
 
     function MsgAppend(string memory _id, string memory content, string memory sign, string memory hash) public {
         messages[_id] = Message(_id, content, sign, hash);
+    }
+
+    function trustAdd(string memory hash, uint increTrust) public {
+        PuKeyRing storage updateTrust = keyring[hash];
+        updateTrust.ownerTrust += increTrust;
+    }
+
+    function trustSub(string memory hash, uint subTrust) public {
+        PuKeyRing storage updateTrust = keyring[hash];
+        updateTrust.ownerTrust -= subTrust;
     }
 }

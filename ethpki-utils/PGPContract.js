@@ -13,6 +13,7 @@ class PGPContract {
   // 메타 마스크 계정 변경 이벤트 리스너
   onAccChange(callback) {
     this.web3.currentProvider.publicConfigStore.on('update', (v) => {
+    console.log("v : ", v);
       if (this.currentAcc.toUpperCase() !== v.selectedAddress.toUpperCase()) {
         if (callback) callback(v);
       }
@@ -61,6 +62,20 @@ class PGPContract {
   // 메시지 정보 얻는 함수
   async getMsgInfo(msgId) {
     const res = await this.contract.methods.messages(msgId).call();
+    return res;
+  }
+
+  // 신뢰도 증가
+  async trustIncre(hash, increTrust) {
+    const res = await this.contract.methods.trustAdd(hash, increTrust).call({ from: this.currentAcc });
+    await this.contract.methods.trustAdd(hash, increTrust).send({ from: this.currentAcc });
+    return res;
+  }
+
+  // 신뢰도 감소
+  async trustReduc(hash, subTrust) {
+    const res = await this.contract.methods.trustSub(hash, subTrust).call({ from: this.currentAcc });
+    await this.contract.methods.trustSub(hash, subTrust).send({ from: this.currentAcc });
     return res;
   }
 }

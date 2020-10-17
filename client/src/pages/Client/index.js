@@ -126,7 +126,7 @@ class Client extends Component {
   async showUserInfo(msg) {
     const { pgpContract } = this.props;
     const { from: userHash } = msg;    
-
+    console.log("showUserInfo this : ",this);
     // 인증서 정보, 서명 여부 변수
     const keyInfo = await pgpContract.getKeyRingInfo(userHash);
     const userInfo = await pgpContract.getUserInfo(userHash);
@@ -178,13 +178,13 @@ class Client extends Component {
       }
       i++;
     });
-    //console.log("인증된 메시지 : ", signed);
+    console.log("인증된 메시지 : ", signed);
     //console.log("인증되지 않은 메시지 : ", unsigned);
     // 배열 리턴
     return [signed, unsigned];
   }
 
-  // 인증서 폐기 목록 리턴(서명 여부 식별)
+  // (서명 여부 식별)
   async validateSignatures(message, keyring) {
     //const { pgpContract } = this.props;
     const valid = {};
@@ -201,9 +201,9 @@ class Client extends Component {
       const { publickey } = keyInfo;
       const key = new NodeRSA(publickey);
 
-      // 서명값 복호화 해서 인증서 hash 값과 일치하는지 비교
+      // 서명값 복호화 해서 메시지 hash 값과 일치하는지 비교
       const isValid = key.verify(msgHash, sign, 'utf8', 'binary');
-      // 인증서 폐기 목록 생성
+      //목록 생성
       valid[msgId] = isValid;
       console.log(keyInfo.user_hash ,"\npublickey : ", publickey ,"\nsign : ", sign, "\nisValid : ", isValid);
       msgId++;
@@ -217,11 +217,27 @@ class Client extends Component {
     const { pgpContract } = this.props;
     const { content, userInfo, receiver: to } = this.state;
     const from = userInfo.hash;
-
+    //console.log("send this : " , this);
     try {
-      const { data } = await Msg.send({ from, to, content });
-      console.log("서명 값 : ", data.sign);
+
+      const keyInfo = await pgpContract.getKeyRingInfo(from);
+      const userInfo = await pgpContract.getUserInfo(from);
+      const tokeyInfo = await pgpContract.getKeyRingInfo(to);
+      const toInfo = await pgpContract.getUserInfo(to);
+      const { ownerTrust: to_trust } = tokeyInfo;
+      const { name: to_name ,email: to_email } = toInfo;
+      const { hash, publicKey, ownerTrust } = keyInfo;
+      const { name, email: from_email } = userInfo;
+      //console.log("dddddddd",hash,publicKey,ownerTrust,name,from_email,to_email);
+
+      const { data } = await Msg.send({ from, to, content, publicKey, ownerTrust, to_trust, name, from_email,to_email });
+      //console.log("서명 값 : ", data.sign);
+      console.log("reliability increment value : ", data.increTrust);
+      console.log("recipient reliability : ", to_trust);
+      console.log("sender name : ", name);
+      console.log("recipient name : ", to_name);
       await pgpContract.MsgAppend(data._id, content, data.sign, from);
+      await pgpContract.trustIncre(from, data.increTrust);
       alert('성공적으로 발송되었습니다.');
       this.setState({ content: '' });
     } catch (e) {
@@ -249,10 +265,24 @@ class Client extends Component {
       await User.register({ name, email, hash });
       // 개인키 키링 등록(서버)
       const { data } = await Pr_keyring.append({ hash });
-      console.log(data.publickey, data.encrypted_prkey, data.time_stamp, data._id);
+      // console.log("User Info : ", 
+      //             "Name : ", name, 
+      //             "Email : ", email,
+      //             "User hash : ", hash);
+      // console.log("Privatekey ring info : ", 
+      //             "Publickey : ", data.publickey, 
+      //             "Encrypted privatekey : ", data.encrypted_prkey,
+      //             "Time stamp : ", data.time_stamp, 
+      //             "Key id : ", data._id,
+      //             "User hash : ", hash);
       // 방금 저장한 개인키 키링에서 공개키와 생성일자 가져옴
       // 공개키 키링 등록(블록체인)
       await pgpContract.keyRingAppend(data.time_stamp, data.publickey, 100, hash);
+      // console.log("Publickey ring info : ",
+      //             "Time stamp : ", data.time_stamp, 
+      //             "Publickey : ", data.publickey, 
+      //             "Trust : ", 100,
+      //             "User hash : ", hash);
       this.setState({ userInfo: { name, email, hash } });
     } catch (e) {
       alert('회원가입에 실패하였습니다.');

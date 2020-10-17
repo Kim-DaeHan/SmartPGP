@@ -1,8 +1,10 @@
 import React, { Component } from "react";
 import loadWeb3 from "ethpki-utils/loadWeb3";
 import PGPContract from 'ethpki-utils/PGPContract';
+import { BrowserRouter, Route, Switch } from 'react-router-dom';
 
 import Client from './pages/Client';
+import Eva from './pages/eva';
 
 class App extends Component {
   constructor(props) {
@@ -26,7 +28,12 @@ class App extends Component {
     return (
       <div id='app'>
          {/* state에 저장된 pgpContract 객체를 하위 컴포넌트로 전달 */}
-        <Client pgpContract={this.state.pgpContract} />
+         <BrowserRouter>
+          <Switch>
+            <Route exact path="/" render={() => (<Client pgpContract={this.state.pgpContract} />)}/>
+            <Route path="/eva/:hash/:increTrust" render={(props) => (<Eva {...props} pgpContract={this.state.pgpContract} />)}/>          
+          </Switch>
+         </BrowserRouter>
       </div>
     );
   }

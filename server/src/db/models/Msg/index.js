@@ -1,13 +1,10 @@
 import mongoose, { Schema } from 'mongoose';
 
 const Msg = new Schema({
-  from: {
+  from_email: {
     type: String,
   },
-  to: {
-    type: String,
-  },
-  sender_name: {
+  to_email: {
     type: String,
   },
   content: {
@@ -19,6 +16,9 @@ const Msg = new Schema({
   date: {
     type: Date,
     default: Date.now,
+  },
+  increTrust: {
+    type: Number,
   },
 });
 

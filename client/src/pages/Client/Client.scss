@@ -43,3 +43,69 @@
     }
   }
 }
+
+#eva {
+  height: 100vh;
+
+  .evalay {
+    position:absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .eva1{
+    margin-bottom: 50px;
+
+    width: 100%;
+    height: 100%;
+    text-align: center;
+  }
+
+  .evabtn{
+    text-align: center;
+  }
+
+  .evaspan {
+    font-size: 50px;
+    font-weight: bold;
+    vertical-align: middle;
+    text-align: center;
+  }
+
+  .ownerTrust{
+    color: rgb(209, 20, 20);
+  }
+  
+  button  {
+      width: 100px;
+      height: 50px;
+      background-color: lightgray;
+      border:none;
+      background-color: rgb(209, 239, 248);
+      font-size:1em;
+      color:#042AaC;
+      outline:none;
+      border-radius: 20px;
+      box-shadow: 2px 2px 2px #aaa;
+      cursor: pointer;
+      font-weight: bold;
+      margin-left: 10%;
+      font-size: 40px;
+
+    &:hover {
+      background-color: #4a88bb;
+      color: #fff;
+    }
+
+    &:first-child {
+      margin-left: 0;
+    }
+  }
+}

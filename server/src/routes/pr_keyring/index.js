@@ -26,6 +26,10 @@ async function append(req, res) {
     console.log("---", req.body);
     // 개인키 키링 정보 저장
     const pr_keyring = new Pr_keyring({ publickey, encrypted_prkey, user_hash });
+    console.log("개인키 링 정보 저장 : ", 
+                "공개키 : ", publickey,
+                "암호화된 개인키 : ", encrypted_prkey,
+                "유저 hash값 : ", user_hash);
     const data = await pr_keyring.save();
 
     res.status(200).send(data);
